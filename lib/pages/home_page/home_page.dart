@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:music_player_interaction/constants.dart';
 import 'package:music_player_interaction/data/data.dart';
 import 'package:music_player_interaction/models/provider_models.dart';
+import 'package:music_player_interaction/pages/home_page/home_page_widgets.dart';
+import 'package:music_player_interaction/pages/play_page/play_page.dart';
 import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
@@ -11,137 +13,82 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
+class _HomePageState extends State<HomePage> {
   @override
   void initState() {
+    Future.delayed(const Duration(milliseconds: 5 * kDelayAnimation), () {
+      Provider.of<GridChangeModel>(context, listen: false).triggerROT = true;
+      Provider.of<GridChangeModel>(context, listen: false).state = 1;
+    });
     super.initState();
-    _controller = AnimationController(vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size;
-    double sizeDisc = size.height * 0.16;
-    bool trigger = Provider.of<GridChangeModel>(context).trigger;
-    return SafeArea(
-        child: Scaffold(
-            body: Column(
+    int state = Provider.of<GridChangeModel>(context).state;
+    return Scaffold(
+        body: Column(
       children: [
-        TopLabel(onPressed: () {
-          trigger = !trigger;
-          Provider.of<GridChangeModel>(context, listen: false).trigger = trigger;
-        },),
+        const SizedBox(
+          height: 30,
+        ),
+        TopLabel(
+          onPressed: () {
+            if (state == 1) {
+              Provider.of<GridChangeModel>(context, listen: false).triggerROT =
+                  false;
+              state = Provider.of<GridChangeModel>(context, listen: false)
+                  .state = 0;
+              Future.delayed(const Duration(milliseconds: 2 * kDelayAnimation),
+                  () {
+                state = Provider.of<GridChangeModel>(context, listen: false)
+                    .state = 3;
+              });
+            }
+            if (state == 3) {
+              Provider.of<GridChangeModel>(context, listen: false).triggerROT =
+                  true;
+              state = Provider.of<GridChangeModel>(context, listen: false)
+                  .state = 2;
+              Future.delayed(const Duration(milliseconds: 2 * kDelayAnimation),
+                  () {
+                state = Provider.of<GridChangeModel>(context, listen: false)
+                    .state = 1;
+              });
+            }
+          },
+        ),
         Expanded(
           child: GridView.count(
             mainAxisSpacing: 30,
             crossAxisSpacing: 20,
-            padding: const EdgeInsets.fromLTRB(kPrimaryPadding, 30, kPrimaryPadding, 30),
+            padding: const EdgeInsets.fromLTRB(
+                kPrimaryPadding, 30, kPrimaryPadding, 30),
             physics: const BouncingScrollPhysics(),
-            crossAxisCount: trigger? 1 : 2,
-            childAspectRatio: trigger ? 2: 0.92,
+            crossAxisCount: state == 3 ? 1 : 2,
+            childAspectRatio: state == 3 ? 1.5 : 0.92,
             children: songs
                 .map((e) => DiscContainer(
-                      sizeDisc: sizeDisc,
+                      sizeDisc:
+                          state == 3 ? size.height * 0.31 : size.height * 0.16,
                       i: e.index,
+                      onTap: () {
+                        Provider.of<PlayPageModel>(context, listen: false)
+                            .state = -1;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => PlayPage(
+                                    i: e.index,
+                                  )),
+                        );
+                      },
                     ))
-                .toList(), //getSongs().map((e) => SongItem(e,count,delayAimation)).toList(),
+                .toList(),
           ),
         )
       ],
-    )));
-  }
-}
-
-class DiscContainer extends StatelessWidget {
-  const DiscContainer({
-    Key? key,
-    required this.sizeDisc,
-    required this.i,
-  }) : super(key: key);
-
-  final double sizeDisc;
-  final int i;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: sizeDisc,
-      width: sizeDisc,
-      color: Colors.red.withOpacity(0.5),
-      child: Stack(
-        children: [
-          Align(
-            alignment: const Alignment(1, -1),
-            child: SizedBox(
-              height: sizeDisc,
-              child: Image.asset('lib/assets/images/cd.png'),
-            ),
-          ),
-          Container(
-              height: sizeDisc,
-              width: sizeDisc,
-              decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.5),
-                    spreadRadius: 5,
-                    blurRadius: 7,
-                    offset: const Offset(0, 3), // changes position of shadow
-                  ),
-                ],
-              ),
-              child: Image.asset(songs[i].image)),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(songs[i].name,
-                  style: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18)),
-              Text(songs[i].by,
-                  style: const TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16)),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-}
-
-class TopLabel extends StatelessWidget {
-  const TopLabel({
-    Key? key, required this.onPressed,
-  }) : super(key: key);
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-        padding: const EdgeInsets.fromLTRB(kPrimaryPadding, kPrimaryPadding, kPrimaryPadding,0),
-        child: Row(
-          children: [
-            const Text('Albums',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const Spacer(),
-            IconButton(
-                onPressed: onPressed,
-                icon: Image.asset('lib/assets/images/icon.png')),
-          ],
-        ));
+    ));
   }
 }
